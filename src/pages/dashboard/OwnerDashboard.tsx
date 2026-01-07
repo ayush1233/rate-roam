@@ -1,8 +1,27 @@
+import React from "react";
 import { motion } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
+
+import { useAuth, api } from "../../context/AuthContext";
 
 const OwnerDashboard = () => {
   const { user, logout } = useAuth();
+
+  const [summary, setSummary] = React.useState<{
+    averageRating: number | null;
+    totalReviews: number;
+    uniqueReviewers: number;
+  }>();
+
+  const [reviewers, setReviewers] = React.useState<
+    { id: string; user_name: string; store_name: string; rating: number; created_at: string }[]
+  >();
+
+  React.useEffect(() => {
+    api.get("/owner/summary").then((res) => {
+      setSummary(res.data.summary);
+      setReviewers(res.data.reviewers);
+    });
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-6">
@@ -20,25 +39,30 @@ const OwnerDashboard = () => {
       </header>
 
       <section className="grid gap-4 md:grid-cols-3 mb-8">
-        {["Average rating", "Total reviews", "Unique reviewers"].map((label) => (
-          <motion.div
-            key={label}
-            className="rounded-xl bg-card/70 border border-border/80 px-4 py-3 shadow-sm shadow-black/30"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
-            <motion.p
-              className="text-2xl font-semibold tracking-tight"
-              initial={{ opacity: 0.4 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
+        {summary &&
+          [
+            { label: "Average rating", value: summary.averageRating ?? 0 },
+            { label: "Total reviews", value: summary.totalReviews },
+            { label: "Unique reviewers", value: summary.uniqueReviewers },
+          ].map((m) => (
+            <motion.div
+              key={m.label}
+              className="rounded-xl bg-card/70 border border-border/80 px-4 py-3 shadow-sm shadow-black/30"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
             >
-              0
-            </motion.p>
-          </motion.div>
-        ))}
+              <p className="text-[11px] text-muted-foreground mb-1">{m.label}</p>
+              <motion.p
+                className="text-2xl font-semibold tracking-tight"
+                initial={{ opacity: 0.4 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                {m.value}
+              </motion.p>
+            </motion.div>
+          ))}
       </section>
 
       <section className="rounded-xl bg-card/70 border border-border/80 p-4">
@@ -56,11 +80,23 @@ const OwnerDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              <tr className="hover:bg-muted/40 transition-colors">
-                <td className="px-3 py-2 text-xs text-muted-foreground/70" colSpan={3}>
-                  No reviews yet.
-                </td>
-              </tr>
+              {reviewers && reviewers.length > 0 ? (
+                reviewers.map((r) => (
+                  <tr key={r.id} className="hover:bg-muted/40 transition-colors">
+                    <td className="px-3 py-2 text-xs text-muted-foreground/90">{r.user_name}</td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground/70">{r.rating}</td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground/70">
+                      {new Date(r.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr className="hover:bg-muted/40 transition-colors">
+                  <td className="px-3 py-2 text-xs text-muted-foreground/70" colSpan={3}>
+                    No reviews yet.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

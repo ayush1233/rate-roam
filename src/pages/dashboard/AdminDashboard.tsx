@@ -1,8 +1,41 @@
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../context/AuthContext";
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
+
+  const { data: metrics } = useQuery({
+    queryKey: ["admin-metrics"],
+    queryFn: async () => {
+      const res = await api.get("/admin/metrics");
+      return res.data as { totalUsers: number; totalStores: number; totalRatings: number };
+    },
+  });
+
+  const { data: users } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: async () => {
+      const res = await api.get("/admin/users");
+      return res.data as { id: string; name: string; email: string; roles: string[] }[];
+    },
+  });
+
+  const { data: stores } = useQuery({
+    queryKey: ["admin-stores"],
+    queryFn: async () => {
+      const res = await api.get("/admin/stores");
+      return res.data as {
+        id: string;
+        name: string;
+        email: string | null;
+        address: string;
+        averageRating: number | null;
+        ratingsCount: number;
+      }[];
+    },
+  });
 
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-6">
@@ -20,25 +53,33 @@ const AdminDashboard = () => {
       </header>
 
       <section className="grid gap-4 md:grid-cols-3 mb-8">
-        {["Total users", "Total stores", "Total ratings"].map((label) => (
-          <motion.div
-            key={label}
-            className="rounded-xl bg-card/70 border border-border/80 px-4 py-3 shadow-sm shadow-black/30"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
-            <motion.p
-              className="text-2xl font-semibold tracking-tight"
-              initial={{ opacity: 0.4 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
+        {["Total users", "Total stores", "Total ratings"].map((label, idx) => {
+          const value =
+            idx === 0
+              ? metrics?.totalUsers ?? 0
+              : idx === 1
+                ? metrics?.totalStores ?? 0
+                : metrics?.totalRatings ?? 0;
+          return (
+            <motion.div
+              key={label}
+              className="rounded-xl bg-card/70 border border-border/80 px-4 py-3 shadow-sm shadow-black/30"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
             >
-              0
-            </motion.p>
-          </motion.div>
-        ))}
+              <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
+              <motion.p
+                className="text-2xl font-semibold tracking-tight"
+                initial={{ opacity: 0.4 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                {value}
+              </motion.p>
+            </motion.div>
+          );
+        })}
       </section>
 
       <section className="grid gap-6 md:grid-cols-2">
