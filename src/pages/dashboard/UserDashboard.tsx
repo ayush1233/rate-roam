@@ -1,8 +1,27 @@
+import React from "react";
 import { motion } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
+
+import { useAuth, api } from "../../context/AuthContext";
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
+
+  const [summary, setSummary] = React.useState<{
+    ratedStores: number;
+    averageRating: number | null;
+    pendingReviews: number;
+  }>();
+
+  const [ratings, setRatings] = React.useState<
+    { id: string; store_name: string; rating: number; created_at: string }[]
+  >();
+
+  React.useEffect(() => {
+    api.get("/user/summary").then((res) => {
+      setSummary(res.data.summary);
+      setRatings(res.data.ratings);
+    });
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-6">
@@ -20,25 +39,30 @@ const UserDashboard = () => {
       </header>
 
       <section className="grid gap-4 md:grid-cols-3 mb-8">
-        {["Rated stores", "Average given rating", "Pending reviews"].map((label) => (
-          <motion.div
-            key={label}
-            className="rounded-xl bg-card/70 border border-border/80 px-4 py-3 shadow-sm shadow-black/30"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
-            <motion.p
-              className="text-2xl font-semibold tracking-tight"
-              initial={{ opacity: 0.4 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
+        {summary &&
+          [
+            { label: "Rated stores", value: summary.ratedStores },
+            { label: "Average given rating", value: summary.averageRating ?? 0 },
+            { label: "Pending reviews", value: summary.pendingReviews },
+          ].map((m) => (
+            <motion.div
+              key={m.label}
+              className="rounded-xl bg-card/70 border border-border/80 px-4 py-3 shadow-sm shadow-black/30"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
             >
-              0
-            </motion.p>
-          </motion.div>
-        ))}
+              <p className="text-[11px] text-muted-foreground mb-1">{m.label}</p>
+              <motion.p
+                className="text-2xl font-semibold tracking-tight"
+                initial={{ opacity: 0.4 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                {m.value}
+              </motion.p>
+            </motion.div>
+          ))}
       </section>
 
       <section className="rounded-xl bg-card/70 border border-border/80 p-4">
@@ -56,11 +80,23 @@ const UserDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              <tr className="hover:bg-muted/40 transition-colors">
-                <td className="px-3 py-2 text-xs text-muted-foreground/70" colSpan={3}>
-                  You haven&apos;t rated any stores yet.
-                </td>
-              </tr>
+              {ratings && ratings.length > 0 ? (
+                ratings.map((r) => (
+                  <tr key={r.id} className="hover:bg-muted/40 transition-colors">
+                    <td className="px-3 py-2 text-xs text-muted-foreground/90">{r.store_name}</td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground/70">{r.rating}</td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground/70">
+                      {new Date(r.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr className="hover:bg-muted/40 transition-colors">
+                  <td className="px-3 py-2 text-xs text-muted-foreground/70" colSpan={3}>
+                    You haven&apos;t rated any stores yet.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

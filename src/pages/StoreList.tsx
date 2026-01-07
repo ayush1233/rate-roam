@@ -1,8 +1,22 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import * as React from "react";
+import { api } from "../context/AuthContext";
 
 const StoreList = () => {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = React.useState("");
+  const [stores, setStores] = React.useState<
+    { id: string; name: string; email: string | null; address: string; averageRating: number | null; ratingsCount: number }[]
+  >([]);
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    const fetchStores = async () => {
+      const res = await api.get("/stores", { params: { q: query || undefined }, signal: controller.signal });
+      setStores(res.data);
+    };
+    fetchStores();
+    return () => controller.abort();
+  }, [query]);
 
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-6">
